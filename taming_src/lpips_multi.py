@@ -65,7 +65,7 @@ class ImagePyramide(torch.nn.Module):
         super(ImagePyramide, self).__init__()
         downs = {}
         for scale in scales:
-            downs[str(scale).replace('.', '-')] = AntiAliasInterpolation2d(num_channels, scale)
+            downs[str(scale).replace('.', '-')] = Resampling.LANCZOSInterpolation2d(num_channels, scale)
         self.downs = nn.ModuleDict(downs)
 
     def forward(self, x):
@@ -73,13 +73,13 @@ class ImagePyramide(torch.nn.Module):
         for scale, down_module in self.downs.items():
             out_dict['prediction_' + str(scale).replace('-', '.')] = down_module(x)
         return out_dict
-    
-class AntiAliasInterpolation2d(nn.Module):
+
+class Resampling.LANCZOSInterpolation2d(nn.Module):
     """
     Band-limited downsampling, for better preservation of the input signal.
     """
     def __init__(self, channels, scale):
-        super(AntiAliasInterpolation2d, self).__init__()
+        super(Resampling.LANCZOSInterpolation2d, self).__init__()
         sigma = (1 / scale - 1) / 2
         kernel_size = 2 * round(sigma * 4) + 1
         self.ka = kernel_size // 2
@@ -122,7 +122,7 @@ class AntiAliasInterpolation2d(nn.Module):
 
         return out
 
-    
+
 class ScalingLayer(nn.Module):
     def __init__(self):
         super(ScalingLayer, self).__init__()

@@ -20,8 +20,8 @@ class KINS_VQ_dataset(torch.utils.data.Dataset):
 
         root_path = config.root_path
         flist = os.path.join(root_path, "vq_{}_list.txt".format(mode))
-            
-        self.image_list = np.genfromtxt(flist, dtype=np.str, encoding='utf-8')
+
+        self.image_list = np.genfromtxt(flist, dtype=str, encoding='utf-8')
         self.base_ann_path= os.path.join(root_path, "update_{}_2020.json".format(mode))
         self.base_img_path = os.path.join(root_path, "{}ing".format(mode),"image_2")
         annotations = cvb.load(self.base_ann_path)
@@ -42,7 +42,7 @@ class KINS_VQ_dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         return self.load_item(index)
-        
+
     def load_item(self, index):
         if self.mode=="train":
             self.enlarge_coef = random.uniform(1.5, 3)
@@ -54,7 +54,7 @@ class KINS_VQ_dataset(torch.utils.data.Dataset):
         # img = cv2.imread(img_path, cv2.IMREAD_COLOR)
         img = np.array(Image.open(img_path))
         height, width, _ = img.shape
-        
+
         ann = self.anns_dict[img_id][anno_id]
         fm_no_crop = self.polys_to_mask(ann["a_segm"], height, width)
         y_min, x_min, w, h = ann["i_bbox"]
@@ -67,14 +67,14 @@ class KINS_VQ_dataset(torch.utils.data.Dataset):
         x_max = min(height, x_center + x_len // 2)
         y_min = max(0, y_center - y_len // 2)
         y_max = min(width, y_center + y_len // 2)
-        
+
         fm_crop = fm_no_crop[x_min:x_max+1, y_min:y_max+1].astype(bool)
-        
+
         h, w = fm_crop.shape[:2]
         m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
         cur_h, cur_w = m.shape[:2]
         to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
         fm_crop = m[np.newaxis, ...]
         fm_crop = torch.from_numpy(fm_crop).to(self.dtype).to(self.device)
         meta = {
@@ -121,7 +121,7 @@ class KINS_VQ_dataset(torch.utils.data.Dataset):
                 anns_dict[image_id].append(ann)
             else:
                 anns_dict[image_id].append(ann)
-        
+
         for img in imgs:
             image_id = img['id']
             imgs_dict[image_id] = img['file_name']
@@ -141,12 +141,12 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
         self.config = config
         self.mode = mode
         self.root_path = config.root_path
-        
+
         # Load Fusion dataset
         self.data_info = pickle.load(open(os.path.join(self.root_path, "fusion_{}.pkl".format(self.mode)), "rb"))
-        self.label_info = np.genfromtxt(os.path.join(self.root_path, "c2f_seg_{}_list.txt".format(self.mode)), dtype=np.str, encoding='utf-8')
+        self.label_info = np.genfromtxt(os.path.join(self.root_path, "c2f_seg_{}_list.txt".format(self.mode)), dtype=str, encoding='utf-8')
         self.img_root_path = os.path.join(self.root_path, "{}ing".format(mode),"image_2")
-        
+
         # Load the GT of AISFormer
         if mode=="train":
             aisformer_gt = cvb.load(os.path.join(self.root_path, "instances_train.json"))
@@ -155,7 +155,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
         annotations = aisformer_gt["annotations"]
         images = aisformer_gt["images"]
         self.images, self.annotations = self.make_json_dict(images, annotations)
-        
+
         # Load the GT of vanilla KINS
         self.base_img_path = os.path.join(self.root_path, "{}ing".format(mode), "image_2")
         self.base_ann_path= os.path.join(self.root_path, "update_{}_2020.json".format(mode))
@@ -176,7 +176,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         return self.load_item(index)
-        
+
     def load_item(self, index):
         # load aisformer predicted visible masks
         if "aisformer" in self.label_info[index]:
@@ -208,12 +208,12 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             y_min = max(0, y_center - y_len // 2)
             y_max = min(width, y_center + y_len // 2)
             x_min, x_max, y_min, y_max = int(x_min), int(x_max), int(y_min), int(y_max)
-        
+
             vm_crop = vm_no_crop[x_min:x_max+1, y_min:y_max+1, 0].astype(bool)
             vm_crop_gt = vm_no_crop_gt[x_min:x_max+1, y_min:y_max+1, 0].astype(bool)
             fm_crop = fm_no_crop[x_min:x_max+1, y_min:y_max+1, 0].astype(bool)
             img_crop = img[x_min:x_max+1, y_min:y_max+1]
-            
+
             h, w = vm_crop.shape[:2]
             m = transform.rescale(vm_crop, (self.patch_h/h, self.patch_w/w))
             cur_h, cur_w = m.shape[:2]
@@ -240,7 +240,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
             cur_h, cur_w = m.shape[:2]
             to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
             fm_crop = m[np.newaxis, ...]
 
             loss_mask = fm_no_crop.astype(int)-vm_no_crop_gt.astype(int)
@@ -254,7 +254,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             vm_pad = np.array([max(self.patch_h-cur_h, 0), max(self.patch_w-cur_w, 0)])
             vm_scale = np.array([self.patch_h/h, self.patch_w/w])
             counts = np.array([1])
-            
+
             counts = torch.from_numpy(counts).to(self.dtype).to(self.device)
 
             obj_position = torch.from_numpy(obj_position).to(self.dtype).to(self.device)
@@ -271,10 +271,10 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             img_crop = torch.from_numpy(np.array(img_crop)).to(self.dtype).to(self.device)
 
             loss_mask = torch.from_numpy(np.array(loss_mask)).to(self.dtype).to(self.device)
-        
+
             image_id = torch.from_numpy(np.array(image_id)).to(self.dtype).to(self.device)
             anno_id = torch.from_numpy(np.array(anno_id)).to(self.dtype).to(self.device)
-            
+
             if self.mode=="train":
                 meta = {
                     # "vm_no_crop": vm_no_crop,
@@ -315,10 +315,10 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
 
             img_name = self.imgs_dict[img_id]
             img_path = os.path.join(self.base_img_path, img_name)
-            
+
             img = cv2.imread(img_path, cv2.IMREAD_COLOR)
             height, width, _ = img.shape
-            
+
             ann = self.anns_dict[img_id][anno_id]
             fm_no_crop = self.polys_to_mask(ann["a_segm"], height, width)
             vm_no_crop = self.polys_to_mask(ann["i_segm"], height, width)
@@ -337,7 +337,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             x_max = min(height, x_center + x_len // 2)
             y_min = max(0, y_center - y_len // 2)
             y_max = min(width, y_center + y_len // 2)
-            
+
             fm_crop = fm_no_crop[x_min:x_max+1, y_min:y_max+1].astype(bool)
             vm_crop = vm_no_crop[x_min:x_max+1, y_min:y_max+1].astype(bool)
             img_crop = img[x_min:x_max+1, y_min:y_max+1]
@@ -358,7 +358,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
             cur_h, cur_w = m.shape[:2]
             to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
             fm_crop = m[np.newaxis, ...]
 
             obj_position = np.array([x_min, x_max, y_min, y_max])
@@ -387,7 +387,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             vm_no_crop = torch.from_numpy(np.array(vm_no_crop)).to(self.dtype).to(self.device)
             img_crop = torch.from_numpy(np.array(img_crop)).to(self.dtype).to(self.device)
             loss_mask = torch.from_numpy(np.array(loss_mask)).to(self.dtype).to(self.device)
-        
+
             img_id = torch.from_numpy(np.array(img_id)).to(self.dtype).to(self.device)
             anno_id = torch.from_numpy(np.array(anno_id)).to(self.dtype).to(self.device)
             # category_id = torch.from_numpy(np.array(category_id)).to(self.dtype).to(self.device)
@@ -431,7 +431,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
             return meta
 
     def data_augmentation(self, mask):
-        mask = mask.astype(np.float)
+        mask = mask.astype(float)
         rdv = random.random()
         n_repeat = random.randint(1, 4)
         if rdv <= 0.2:
@@ -452,7 +452,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
         else:
             mask = mask
         return (mask>0.5)
-    
+
     @staticmethod
     def collate_fn(batch):
         keys = batch[0].keys()
@@ -491,7 +491,7 @@ class Kins_Fusion_dataset(torch.utils.data.Dataset):
                 anns_dict[image_id].append(ann)
             else:
                 anns_dict[image_id].append(ann)
-        
+
         for img in imgs:
             image_id = img['id']
             imgs_dict[image_id] = img['file_name']
@@ -511,10 +511,10 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
         self.config = config
         self.mode = mode
         self.root_path = config.root_path
-        
+
         # Load Intersection dataset
         self.data_info = pickle.load(open(os.path.join(self.root_path, "kins_intersection.pkl"), "rb"))
-        self.label_info = np.genfromtxt(os.path.join(self.root_path, "kins_intersection_list.txt"), dtype=np.str, encoding='utf-8')
+        self.label_info = np.genfromtxt(os.path.join(self.root_path, "kins_intersection_list.txt"), dtype=str, encoding='utf-8')
         if mode=="train":
             aisformer_gt = cvb.load(os.path.join(self.root_path, "instances_train.json"))
         else:
@@ -528,24 +528,24 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
         self.patch_h = 256
         self.patch_w = 256
         self.device = "cpu"
-        
+
     def __len__(self):
         return self.label_info.shape[0]
 
     def __getitem__(self, index):
         return self.load_item(index)
-    
+
     def mask_find_bboxs(self, mask):
         retval, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
         stats = stats[stats[:,4].argsort()]
         return stats
-    
+
     def generate_heatmap(self, mask, kernel, sigma):
         heatmap = cv2.GaussianBlur(mask, kernel, sigma)
         am = np.amax(heatmap)
         heatmap /= am / 1
         return heatmap
-    
+
     def load_item(self, index):
         image_id, anno_id = self.label_info[index].split("_")
         image_id, anno_id = int(image_id), int(anno_id)
@@ -558,15 +558,15 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
         img_path = os.path.join(self.img_root_path, img_name)
         # img_path = os.path.join(self.img_root_path, str(image_id).zfill(6)+ ".png")
         img = Image.open(img_path)
-        img = img.resize((width,height), Image.ANTIALIAS)
+        img = img.resize((width,height), Image.Resampling.LANCZOS)
         img = np.array(img)
-        
+
         vm_no_crop = mask_utils.decode([segmentation]).astype(bool)
         vm_no_crop_gt = mask_utils.decode([instances["gt_visible_mask"]]).astype(bool)
         # fm_no_crop = mask_utils.decode([instances["gt_full_mask"]]).astype(bool)
         rles = mask_utils.frPyObjects(instances["gt_full_mask"], height, width)
         fm_no_crop = mask_utils.decode(mask_utils.merge(rles)).astype(bool)
-        
+
         bbox = instances["pred_visible_mask_bbox"]
         y_min, x_min, w, h = bbox
         y_max, x_max = y_min + w, x_min + h
@@ -582,7 +582,7 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
 
         x_center_crop = x_center - x_min
         y_center_crop = y_center - y_min
-        
+
         fm_no_crop = fm_no_crop[..., np.newaxis]
         vm_crop = vm_no_crop[x_min:x_max+1, y_min:y_max+1, 0].astype(bool)
         fm_crop = fm_no_crop[x_min:x_max+1, y_min:y_max+1, 0].astype(bool)
@@ -595,12 +595,12 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
         to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
         m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
         vm_crop = m[np.newaxis, ...]
-        
+
         center_crop = np.zeros_like(vm_crop[0])
         x_center_crop = int(x_center_crop*self.patch_h/h)
         y_center_crop = int(y_center_crop*self.patch_w/w)
         center_crop[x_center_crop: x_center_crop+1, y_center_crop: y_center_crop+1]=1
-        center_crop = self.generate_heatmap(center_crop.astype(np.float), (35, 35), 9)
+        center_crop = self.generate_heatmap(center_crop.astype(float), (35, 35), 9)
         center_crop = center_crop[np.newaxis, ...]
 
         img_ = transform.rescale(img_crop, (self.patch_h/h, self.patch_w/w, 1))
@@ -619,7 +619,7 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
         m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
         cur_h, cur_w = m.shape[:2]
         to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
         fm_crop = m[np.newaxis, ...]
 
         refine_loss_mask = 1 - (vm_crop_gt==vm_crop).astype(bool)
@@ -650,15 +650,15 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
         vm_no_crop = torch.from_numpy(np.array(vm_no_crop)).to(self.dtype).to(self.device)
         refine_loss_mask = torch.from_numpy(np.array(refine_loss_mask)).to(self.dtype).to(self.device)
         center_crop = torch.from_numpy(np.array(center_crop)).to(self.dtype).to(self.device)
-        
+
         img_crop = torch.from_numpy(np.array(img_crop)).to(self.dtype).to(self.device)
         img = torch.from_numpy(np.array(img)).to(self.dtype).to(self.device)
 
         loss_mask = torch.from_numpy(np.array(loss_mask)).to(self.dtype).to(self.device)
-    
+
         image_id = torch.from_numpy(np.array(image_id)).to(self.dtype).to(self.device)
         anno_id = torch.from_numpy(np.array(anno_id)).to(self.dtype).to(self.device)
-        
+
         if self.mode=="train":
             meta = {
                 # "vm_no_crop": vm_no_crop,
@@ -755,7 +755,7 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
         rle = mask_utils.merge(rles)
         mask = mask_utils.decode(rle)
         return mask
-    
+
     def make_json_dict(self, imgs, anns):
         imgs_dict = {}
         anns_dict = {}
@@ -766,10 +766,9 @@ class KINS_Aisformer_VRSP_Intersection(torch.utils.data.Dataset):
                 anns_dict[image_id].append(ann)
             else:
                 anns_dict[image_id].append(ann)
-        
+
         for img in imgs:
             image_id = img['id']
             imgs_dict[image_id] = img['file_name']
 
         return imgs_dict, anns_dict
-    

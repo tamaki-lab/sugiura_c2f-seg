@@ -16,13 +16,13 @@ from utils.utils import Config, to_cuda
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--seed', type=int, default=42) 
+    parser.add_argument('--seed', type=int, default=42)
     # path
     parser.add_argument('--path', type=str, required=True, help='model checkpoints path')
-    parser.add_argument('--check_point_path', type=str, default="../check_points", )
+    parser.add_argument('--check_point_path', type=str, default="check_points", )
     parser.add_argument('--vq_path', type=str, required=True, default='KINS_vqgan')
 
-    # dataset 
+    # dataset
     parser.add_argument('--dataset', type=str, default="MOViD_A", help = "select dataset")
     parser.add_argument('--data_type', type=str, default="image", help = "select image or video model")
     parser.add_argument('--batch', type=int, default=1)
@@ -34,8 +34,8 @@ if __name__ == '__main__':
     if args.data_type=="image":
         from src.image_model import C2F_Seg
     elif args.data_type=="video":
-        from src.video_model import C2F_Seg   
-    
+        from src.video_model import C2F_Seg
+
     dist.init_process_group(backend="nccl")
     torch.cuda.set_device(args.local_rank)
     rank = dist.get_rank()
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     # copy config template if does't exist
     if not os.path.exists(config_path):
         copyfile('./configs/c2f_seg_{}.yml'.format(args.dataset), config_path)
-    
+
     # load config file
     config = Config(config_path)
     config.path = args.path
@@ -119,6 +119,7 @@ if __name__ == '__main__':
             test_loader = tqdm(test_loader)
         for items in test_loader:
             items = to_cuda(items, config.device)
+            # z_loss, loss, logs = model.module.get_losses(items)
             loss_eval = model.module.batch_predict_maskgit(items, iter, 'test', T=3)
             iter += 1
             iou += loss_eval['iou']
@@ -129,7 +130,7 @@ if __name__ == '__main__':
             occ_count += loss_eval['occ_count']
 
             logger.info('Rank {}, iter {}: iou: {}, iou_post: {}, occ: {}, occ_post: {}'.format(
-                rank, 
+                rank,
                 iter-1,
                 loss_eval['iou'].item(),
                 loss_eval['iou_post'].item(),
@@ -152,4 +153,3 @@ if __name__ == '__main__':
         logger.info('meanIoU invisible post-process: {}'.format(invisible_iou_post.item() / occ_count.item()))
         logger.info('iou_count: {}'.format(iou_count))
         logger.info('occ_count: {}'.format(occ_count))
-    

@@ -33,7 +33,7 @@ class FishBowl_VQ_Dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         return self.load_item(index)
-        
+
     def load_name(self, index):
         name = self.data[index]
         return os.path.basename(name)
@@ -68,7 +68,7 @@ class FishBowl_VQ_Dataset(torch.utils.data.Dataset):
         mask_crop = m[..., np.newaxis]
         mask_crop = torch.from_numpy(mask_crop).permute(2, 0, 1).to(self.dtype)
 
-        image_path = os.path.join(self.image_root, v_id, f_id+'.png') 
+        image_path = os.path.join(self.image_root, v_id, f_id+'.png')
         img = cv2.imread(image_path)[:,:,::-1]
         img_crop = img[x_min:x_max+1, y_min:y_max+1]
         m = transform.rescale(img_crop, (self.patch_h/h, self.patch_w/w, 1))
@@ -76,7 +76,7 @@ class FishBowl_VQ_Dataset(torch.utils.data.Dataset):
         to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)), (0, 0))
         m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w, :3]
         img_crop = m
-        
+
         img_crop = torch.from_numpy(img_crop).permute(2, 0, 1).to(self.dtype)
         img_crop = img_crop * mask_crop
 
@@ -105,9 +105,9 @@ class FishBowl_VQ_Dataset(torch.utils.data.Dataset):
             img = img[j:j + side, i:i + side, ...]
 
         if imgh > height and imgw > width:
-            inter = cv2.INTER_AREA 
+            inter = cv2.INTER_AREA
         else:
-            inter = cv2.INTER_LINEAR 
+            inter = cv2.INTER_LINEAR
         img = cv2.resize(img, (height, width), interpolation=inter)
 
         return img
@@ -124,7 +124,7 @@ class FishBowl_VQ_Dataset(torch.utils.data.Dataset):
 
             if os.path.isfile(flist):
                 try:
-                    return np.genfromtxt(flist, dtype=np.str, encoding='utf-8')
+                    return np.genfromtxt(flist, dtype=str, encoding='utf-8')
                 except:
                     return [flist]
 
@@ -173,7 +173,7 @@ class FishBowl(object):
         self.mode = mode
         self.dtype = torch.float32
         self.test_set = subtest
-    
+
         self.data_summary = pickle.load(open(os.path.join(data_dir, self.datatype+"_data", self.datatype+"_data.pkl"), "rb"))
         self.obj_lists = list(self.data_summary.keys())
         self.device = "cpu"
@@ -204,13 +204,13 @@ class FishBowl(object):
         vm_crop = []
         vm_no_crop = []
         img_crop = []
-        
+
         obj_position = []
 
         counts = []
         loss_mask_weight = []
 
-        # for evaluation 
+        # for evaluation
         video_ids = []
         object_ids = []
         frame_ids = []
@@ -259,7 +259,7 @@ class FishBowl(object):
             object_ids.append(int(obj_id))
             frame_ids.append(t_step)
             counts.append(1)
-        
+
         if True:
             num_pad = self.seq_len - (end_t - start_t)
             for _  in range(num_pad):
@@ -272,12 +272,12 @@ class FishBowl(object):
                 img_crop.append(copy.deepcopy(img_crop[-1]))
 
                 loss_mask_weight.append(copy.deepcopy(loss_mask_weight[-1]))
-                
+
                 video_ids.append(video_ids[-1])
                 object_ids.append(object_ids[-1])
                 frame_ids.append(frame_ids[-1] + 1)
                 counts.append(0)
-        
+
         vm_crop, vm_crop_gt, fm_crop, img_crop, vm_pad, vm_scale = self.crop_and_rescale(vm_crop, fm_crop, img_crop)
 
         vm_crop = np.stack(vm_crop, axis=0) # Seq_len * h * w
@@ -300,7 +300,7 @@ class FishBowl(object):
         object_ids = torch.from_numpy(np.array(object_ids)).to(self.dtype).to(self.device)
         frame_ids = torch.from_numpy(np.array(frame_ids)).to(self.dtype).to(self.device)
         counts = torch.from_numpy(np.array(counts)).to(self.dtype).to(self.device)
-        loss_mask_weight = torch.from_numpy(np.array(loss_mask_weight)).to(self.dtype).to(self.device) 
+        loss_mask_weight = torch.from_numpy(np.array(loss_mask_weight)).to(self.dtype).to(self.device)
         obj_position = torch.from_numpy(np.array(obj_position)).to(self.dtype).to(self.device)
 
         obj_data = {
@@ -316,7 +316,7 @@ class FishBowl(object):
             "object_ids": object_ids,
             "frame_ids": frame_ids,
             "counts": counts,
-            "loss_mask": loss_mask_weight, 
+            "loss_mask": loss_mask_weight,
             "obj_position": obj_position,
         }
 
@@ -359,7 +359,7 @@ class FishBowl(object):
         vm_pad = np.stack(vm_pad)
         vm_scale = np.stack(vm_scale)
         return vm_crop, vm_crop_gt, fm_crop_vm, img_crop, vm_pad, vm_scale
-    
+
     def getImg(self, v_id):
         imgs = []
         imgs_list = os.listdir(os.path.join(self.img_path, v_id))
@@ -381,7 +381,7 @@ class FishBowl(object):
             )
             for item in sample_loader:
                 yield item
-    
+
     @staticmethod
     def collate_fn(batch):
         keys = batch[0].keys()
@@ -396,9 +396,9 @@ class FishBowl(object):
             else:
                 res[k] = None
         return res
-    
+
     def data_augmentation(self, mask):
-        mask = mask.astype(np.float)
+        mask = mask.astype(float)
         rdv = random.random()
         n_repeat = random.randint(1, 4)
         if rdv <= 0.1:

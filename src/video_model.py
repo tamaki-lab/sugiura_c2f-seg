@@ -39,7 +39,7 @@ class C2F_Seg(nn.Module):
 
         self.eps = 1e-6
         self.train_sample_iters = config.train_sample_iters
-        
+
         self.g_model = VQModel(self.g_config).to(config.device)
         self.img_encoder = Resnet_Encoder().to(config.device)
         self.refine_module = Refine_Module().to(config.device)
@@ -61,7 +61,7 @@ class C2F_Seg(nn.Module):
                                                       reduction=reduction).to(config.device)
         else:
             self.perceptual_loss = None
-    
+
         if config.init_gpt_with_vqvae:
             self.transformer.z_emb.weight = self.g_model.quantize.embedding.weight
 
@@ -125,7 +125,7 @@ class C2F_Seg(nn.Module):
         else:
             mask = mask
         return mask
-    
+
     def get_attn_map(self, feature, guidance):
         guidance = F.interpolate(guidance, scale_factor=(1/16))
         b,c,h,w = guidance.shape
@@ -156,7 +156,7 @@ class C2F_Seg(nn.Module):
         masked_indices = self.mask_token_idx * torch.ones_like(tgt_indices, device=tgt_indices.device) # [B, L]
         z_indices = (~mask) * tgt_indices + mask * masked_indices # [B, L]
 
-        logits_z = self.transformer(img_feat[-1], src_indices, z_indices, mask=None)        
+        logits_z = self.transformer(img_feat[-1], src_indices, z_indices, mask=None)
         target = tgt_indices
         z_loss = self.criterion(logits_z.view(-1, logits_z.size(-1)), target.view(-1))
 
@@ -186,7 +186,7 @@ class C2F_Seg(nn.Module):
             ("loss_fm", loss_fm.item()),
         ]
         return z_loss, loss_vm+loss_fm, logs
-    
+
     def align_raw_size(self, full_mask, obj_position, vm_pad, meta):
         vm_np_crop = meta["vm_no_crop"].squeeze()
         H, W = vm_np_crop.shape[-2], vm_np_crop.shape[-1]
@@ -292,7 +292,7 @@ class C2F_Seg(nn.Module):
             selected_probs = probs.gather(dim=-1, index=sampled_ids.unsqueeze(-1)).squeeze(-1)
 
             selected_probs = torch.where(unknown_map, selected_probs, torch.Tensor([np.inf]).to(logits.device))  # ignore tokens which are already sampled [B, 256]
-            
+
             mask_len = torch.unsqueeze(torch.floor(unknown_number_in_the_beginning * mask_ratio), 1)  # floor(256 * 0.99) = 254 --> [254, 254, 254, 254, ....] (B x 1)
             mask_len = torch.maximum(torch.ones_like(mask_len), torch.minimum(torch.sum(unknown_map, dim=-1, keepdim=True) - 1, mask_len))
 
@@ -358,14 +358,14 @@ class C2F_Seg(nn.Module):
         # Masks tokens with lower confidence.
         masking = (confidence < cut_off)
         return masking
-    
+
     def load(self, is_test=False, prefix=None):
         if prefix is not None:
             transformer_path = self.transformer_path + prefix + '.pth'
         else:
             transformer_path = self.transformer_path + '_last.pth'
         if self.config.restore or is_test:
-            # transformer_path = '/home/ubuntu/AmodalVQGAN_pre/check_points/fish_amodal_transformer_gjx/GETransformer_210000.pth'
+            # transformer_path = '/AmodalVQGAN_pre/check_points/fish_amodal_transformer_gjx/GETransformer_210000.pth'
             if os.path.exists(transformer_path):
                 print('Rank {} is loading {} Transformer...'.format(self.rank, transformer_path))
                 data = torch.load(transformer_path, map_location="cpu")
@@ -396,7 +396,7 @@ class C2F_Seg(nn.Module):
         else:
             print(g_path, 'not Found')
             raise FileNotFoundError
-    
+
     def save(self, prefix=None):
         if prefix is not None:
             save_path = self.transformer_path + "_{}.pth".format(prefix)
@@ -412,5 +412,3 @@ class C2F_Seg(nn.Module):
             'refine': self.refine_module.state_dict(),
             'opt': self.opt.state_dict(),
         }, save_path)
-
-        

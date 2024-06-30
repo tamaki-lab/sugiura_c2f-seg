@@ -1,0 +1,10 @@
+*.yml
+*.pkl
+*.png
+*.jpg
+*.pth
+*.pyc
+.vscode
+*.tar
+*.txt
+*.json

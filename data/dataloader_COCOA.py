@@ -27,8 +27,8 @@ class COCOA_VQ_dataset(torch.utils.data.Dataset):
             val_label = cvb.load(os.path.join(root_path, "COCO_amodal_val2014_with_classes.json"))
             self.anns_dict = val_label["annotations"]
             flist = os.path.join(root_path, "vq_val_list.txt")
-            
-        self.image_list = np.genfromtxt(flist, dtype=np.str, encoding='utf-8')
+
+        self.image_list = np.genfromtxt(flist, dtype=str, encoding='utf-8')
         self.data_list = list(self.anns_dict)
         self.dtype = torch.float32
         self.enlarge_coef = 2
@@ -41,7 +41,7 @@ class COCOA_VQ_dataset(torch.utils.data.Dataset):
 
     def __getitem__(self, index):
         return self.load_item(index)
-        
+
     def load_item(self, index):
         if self.mode=="train":
             self.enlarge_coef = random.uniform(1.5, 3)
@@ -49,7 +49,7 @@ class COCOA_VQ_dataset(torch.utils.data.Dataset):
         img = cv2.imread(img_path, cv2.IMREAD_COLOR)
         img = img[...,::-1]
         height, width, _ = img.shape
-        
+
         ann = self.anns_dict[int(anno_idx)]
 
         full_mask = ann["segmentation"]
@@ -57,7 +57,7 @@ class COCOA_VQ_dataset(torch.utils.data.Dataset):
 
         y_min, x_min, w, h = ann["bbox"]
         y_max, x_max = y_min + w, x_min + h
-        y_min, x_min, y_max, x_max = int(y_min), int(x_min), int(y_max), int(x_max) 
+        y_min, x_min, y_max, x_max = int(y_min), int(x_min), int(y_max), int(x_max)
 
         x_center = (x_min + x_max) // 2
         y_center = (y_min + y_max) // 2
@@ -67,13 +67,13 @@ class COCOA_VQ_dataset(torch.utils.data.Dataset):
         x_max = min(height, x_center + x_len // 2)
         y_min = max(0, y_center - y_len // 2)
         y_max = min(width, y_center + y_len // 2)
-        
+
         fm_crop = fm_no_crop[x_min:x_max+1, y_min:y_max+1].astype(bool)
         h, w = fm_crop.shape[:2]
         m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
         cur_h, cur_w = m.shape[:2]
         to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
         fm_crop = m[np.newaxis, ...]
 
         fm_crop = torch.from_numpy(fm_crop).to(self.dtype).to(self.device)
@@ -122,7 +122,7 @@ class COCOA_VQ_dataset(torch.utils.data.Dataset):
                 anns_dict[image_id].append(ann)
             else:
                 anns_dict[image_id].append(ann)
-        
+
         for img in imgs:
             image_id = img['id']
             imgs_dict[image_id] = img['file_name']
@@ -141,11 +141,11 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
         self.config = config
         self.mode = mode
         self.root_path = config.root_path
-        
-        # Load Fusion dataset 
+
+        # Load Fusion dataset
         self.data_info = pickle.load(open(os.path.join(self.root_path, "fusion_{}.pkl".format(self.mode)), "rb"))
-        self.label_info = np.genfromtxt(os.path.join(self.root_path, "c2f_seg_{}_list.txt".format(self.mode)), dtype=np.str, encoding='utf-8')
-        
+        self.label_info = np.genfromtxt(os.path.join(self.root_path, "c2f_seg_{}_list.txt".format(self.mode)), dtype=str, encoding='utf-8')
+
         if mode=="train":
             train_label = cvb.load(os.path.join(self.root_path, "COCO_amodal_train2014_with_classes.json"))
             self.anns_dict = train_label["annotations"]
@@ -154,20 +154,20 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
             val_label = cvb.load(os.path.join(self.root_path, "COCO_amodal_val2014_with_classes.json"))
             self.anns_dict = val_label["annotations"]
             self.img_root_path = os.path.join(self.root_path, "val2014")
-            
+
         self.dtype = torch.float32
         self.enlarge_coef = 2
         self.patch_h = 256
         self.patch_w = 256
         self.device = "cpu"
 
-        
+
     def __len__(self):
         return self.label_info.shape[0]
 
     def __getitem__(self, index):
         return self.load_item(index)
-        
+
     def load_item(self, index):
         # predicted vm
         if len(self.label_info[index].split(","))==3:
@@ -232,7 +232,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
             m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
             cur_h, cur_w = m.shape[:2]
             to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
             fm_crop = m[np.newaxis, ...]
             # if self.mode=="test":
             #     loss_mask = mask_utils.decode([instances["loss_mask"]]).astype(bool)[...,0]
@@ -264,11 +264,11 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
             img_crop = torch.from_numpy(np.array(img_crop)).to(self.dtype).to(self.device)
             img = torch.from_numpy(np.array(img)).to(self.dtype).to(self.device)
             loss_mask = torch.from_numpy(np.array(loss_mask)).to(self.dtype).to(self.device)
-        
+
             image_id = torch.from_numpy(np.array(image_id)).to(self.dtype).to(self.device)
             anno_id = torch.from_numpy(np.array(anno_id)).to(self.dtype).to(self.device)
             # occlude_rate = torch.from_numpy(np.array(occlude_rate)).to(self.dtype).to(self.device)
-            
+
             if self.mode=="train":
                 meta = {
                     # "vm_no_crop": vm_no_crop,
@@ -334,7 +334,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
                 counts = np.array([1])
             y_min, x_min, w, h = ann["bbox"]
             y_max, x_max = y_min + w, x_min + h
-            y_min, x_min, y_max, x_max = int(y_min), int(x_min), int(y_max), int(x_max) 
+            y_min, x_min, y_max, x_max = int(y_min), int(x_min), int(y_max), int(x_max)
 
             x_center = (x_min + x_max) // 2
             y_center = (y_min + y_max) // 2
@@ -344,7 +344,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
             x_max = min(height, x_center + x_len // 2)
             y_min = max(0, y_center - y_len // 2)
             y_max = min(width, y_center + y_len // 2)
-            
+
             fm_crop = fm_no_crop[x_min:x_max+1, y_min:y_max+1, 0].astype(bool)
             vm_crop = vm_no_crop[x_min:x_max+1, y_min:y_max+1, 0].astype(bool)
             img_crop = img[x_min:x_max+1, y_min:y_max+1]
@@ -365,7 +365,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
             m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
             cur_h, cur_w = m.shape[:2]
             to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+            m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
             fm_crop = m[np.newaxis, ...]
 
             obj_position = np.array([x_min, x_max, y_min, y_max])
@@ -383,7 +383,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
             loss_mask = 1-loss_mask.astype(bool)
             # data augmentation
             vm_crop_aug = self.data_augmentation(vm_crop[0])[np.newaxis, ...]
-            
+
             counts = torch.from_numpy(counts).to(self.dtype).to(self.device)
 
             obj_position = torch.from_numpy(obj_position).to(self.dtype).to(self.device)
@@ -397,9 +397,9 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
             img_crop = torch.from_numpy(img_crop).to(self.dtype).to(self.device)
             img = torch.from_numpy(img).to(self.dtype).to(self.device)
             vm_no_crop = torch.from_numpy(np.array(vm_no_crop)).to(self.dtype).to(self.device)
-            
+
             loss_mask = torch.from_numpy(np.array(loss_mask)).to(self.dtype).to(self.device)
-        
+
             img_id = torch.from_numpy(np.array(img_id)).to(self.dtype).to(self.device)
             anno_id = torch.from_numpy(np.array(anno_id)).to(self.dtype).to(self.device)
             # category_id = torch.from_numpy(np.array(category_id)).to(self.dtype).to(self.device)
@@ -445,7 +445,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
                     "img_no_crop": img,
                 }
             return meta
-        
+
     @staticmethod
     def collate_fn(batch):
         keys = batch[0].keys()
@@ -482,9 +482,9 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
 
     # def data_augmentation(self, mask):
     #     return mask
-    
+
     def data_augmentation(self, mask):
-        mask = mask.astype(np.float)
+        mask = mask.astype(float)
         rdv = random.random()
         n_repeat = random.randint(1, 4)
         if rdv <= 0.2:
@@ -505,7 +505,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
         else:
             mask = mask
         return (mask>0.5)
-    
+
     def make_json_dict(self, imgs, anns):
         imgs_dict = {}
         anns_dict = {}
@@ -516,7 +516,7 @@ class COCOA_Fusion_dataset(torch.utils.data.Dataset):
                 anns_dict[image_id].append(ann)
             else:
                 anns_dict[image_id].append(ann)
-        
+
         for img in imgs:
             image_id = img['id']
             imgs_dict[image_id] = img['file_name']
@@ -529,8 +529,8 @@ class COCOA_VRSP(torch.utils.data.Dataset):
         self.config = config
         self.mode = mode
         self.data_info = pickle.load(open(os.path.join(self.root_path, "fusion_{}.pkl".format(self.mode)), "rb"))
-        self.label_info = np.genfromtxt(os.path.join(self.root_path, "c2f_seg_{}_list.txt".format(self.mode)), dtype=np.str, encoding='utf-8')
-        
+        self.label_info = np.genfromtxt(os.path.join(self.root_path, "c2f_seg_{}_list.txt".format(self.mode)), dtype=str, encoding='utf-8')
+
         if self.mode=="train":
             self.img_root_path = os.path.join(self.root_path, "train2014")
         elif self.mode=="test":
@@ -542,19 +542,19 @@ class COCOA_VRSP(torch.utils.data.Dataset):
         self.patch_w = 256
         self.device = "cpu"
 
-        
+
     def __len__(self):
         return self.label_info.shape[0]
 
     def __getitem__(self, index):
         return self.load_item(index)
-    
+
     def generate_heatmap(self, mask, kernel, sigma):
         heatmap = cv2.GaussianBlur(mask, kernel, sigma)
         am = np.amax(heatmap)
         heatmap /= am / 1
         return heatmap
-    
+
     def load_item(self, index):
         image_id, anno_id = self.label_info[index].split("_")
         image_id, anno_id = int(image_id), int(anno_id)
@@ -585,7 +585,7 @@ class COCOA_VRSP(torch.utils.data.Dataset):
         y_min = max(0, y_center - y_len // 2)
         y_max = min(weight, y_center + y_len // 2)
         x_min, x_max, y_min, y_max = int(x_min), int(x_max), int(y_min), int(y_max)
-        
+
         x_center_crop = x_center - x_min
         y_center_crop = y_center - y_min
 
@@ -605,7 +605,7 @@ class COCOA_VRSP(torch.utils.data.Dataset):
         x_center_crop = int(x_center_crop*self.patch_h/h)
         y_center_crop = int(y_center_crop*self.patch_w/w)
         center_crop[x_center_crop: x_center_crop+1, y_center_crop: y_center_crop+1]=1
-        center_crop = self.generate_heatmap(center_crop.astype(np.float), (35, 35), 9)
+        center_crop = self.generate_heatmap(center_crop.astype(float), (35, 35), 9)
         center_crop = center_crop[np.newaxis, ...]
 
         img_ = transform.rescale(img_crop, (self.patch_h/h, self.patch_w/w, 1))
@@ -624,7 +624,7 @@ class COCOA_VRSP(torch.utils.data.Dataset):
         m = transform.rescale(fm_crop, (self.patch_h/h, self.patch_w/w))
         cur_h, cur_w = m.shape[:2]
         to_pad = ((0, max(self.patch_h-cur_h, 0)), (0, max(self.patch_w-cur_w, 0)))
-        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]    
+        m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
         fm_crop = m[np.newaxis, ...]
 
         loss_mask = fm_no_crop.astype(int)-vm_no_crop_gt.astype(int)
@@ -651,16 +651,16 @@ class COCOA_VRSP(torch.utils.data.Dataset):
         vm_crop_gt = torch.from_numpy(vm_crop_gt).to(self.dtype).to(self.device)
         vm_no_crop = torch.from_numpy(np.array(vm_no_crop)).to(self.dtype).to(self.device)
         center_crop = torch.from_numpy(np.array(center_crop)).to(self.dtype).to(self.device)
-        
+
         img_crop = torch.from_numpy(np.array(img_crop)).to(self.dtype).to(self.device)
         img = torch.from_numpy(np.array(img)).to(self.dtype).to(self.device)
 
         loss_mask = torch.from_numpy(np.array(loss_mask)).to(self.dtype).to(self.device)
-    
+
         image_id = torch.from_numpy(np.array(image_id)).to(self.dtype).to(self.device)
         anno_id = torch.from_numpy(np.array(anno_id)).to(self.dtype).to(self.device)
         occlude_rate = torch.from_numpy(np.array(occlude_rate)).to(self.dtype).to(self.device)
-        
+
         if self.mode=="train":
             meta = {
                 # "vm_no_crop": vm_no_crop,
@@ -736,4 +736,3 @@ class COCOA_VRSP(torch.utils.data.Dataset):
         rle = mask_utils.merge(rles)
         mask = mask_utils.decode(rle)
         return mask
-

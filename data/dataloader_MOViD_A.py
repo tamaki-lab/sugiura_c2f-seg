@@ -23,7 +23,7 @@ class Movid_A_VQ_Dataset(object):
         self.device = "cpu"
         root_path = config.root_path
 
-        self.image_list = np.genfromtxt(os.path.join(root_path,"{}_frame_list.txt".format(mode)), dtype=np.str, encoding='utf-8')
+        self.image_list = np.genfromtxt(os.path.join(root_path,"{}_frame_list.txt".format(mode)), dtype=str, encoding='utf-8')
         self.data_dir = config.root_path
         self.dtype = torch.float32
         self.enlarge_coef = 1.2
@@ -34,7 +34,7 @@ class Movid_A_VQ_Dataset(object):
 
     def __len__(self):
         return len(self.image_list)
-            
+
     def __getitem__(self, idx):
         video_id, obj_id, frame_id = self.image_list[idx].split("_")
         mask_value = int(obj_id)+1
@@ -66,7 +66,7 @@ class Movid_A_VQ_Dataset(object):
         vy_min = max(0, y_center - y_len // 2)
         vy_max = min(self.Image_W, y_center + y_len // 2)
         mask_crop = full_mask[vx_min:vx_max+1, vy_min:vy_max+1]
-        
+
         h, w = mask_crop.shape[:2]
         m = transform.rescale(mask_crop, (self.patch_h/h, self.patch_w/w))
         cur_h, cur_w = m.shape[:2]
@@ -74,7 +74,7 @@ class Movid_A_VQ_Dataset(object):
         m = np.pad(m, to_pad)[:self.patch_h, :self.patch_w]
         mask_crop = m[..., np.newaxis]
         mask_crop = torch.from_numpy(mask_crop).permute(2, 0, 1).to(self.dtype)
-        
+
         # load iamge for vq
         # img_crop = rgb_img[vx_min:vx_max+1, vy_min:vy_max+1]
         # img = transform.rescale(img_crop, (self.patch_h/h, self.patch_w/w, 1))
@@ -84,7 +84,7 @@ class Movid_A_VQ_Dataset(object):
         # img_crop = img
         # img_crop = torch.from_numpy(img_crop).permute(2, 0, 1).to(self.dtype)
         # # img_crop = img_crop * mask_crop
-        
+
         meta = {
             'mask_crop': mask_crop,
             # 'image_crop': img_crop
@@ -132,10 +132,10 @@ class MOViD_A(object):
         self.device = "cpu"
         root_path = config.root_path
         self.data_dir = os.path.join(root_path, mode)
-        
+
         self.instance_list = np.genfromtxt(
             os.path.join(root_path, "{}_instance.txt".format(mode)),
-            dtype=np.str,
+            dtype=str,
             encoding='utf-8'
         )
 
@@ -170,10 +170,10 @@ class MOViD_A(object):
 
         full_mask_paths = [os.path.join(self.video_path, "segmentation_{}_{}.png".format(obj_id, str(f).zfill(5))) for f in range(self.num_frames)]
         full_mask = [np.array(Image.open(frame_path)) for frame_path in full_mask_paths] #[t,h,w]
-                
+
         rgb_img_path = [os.path.join(self.video_path, "rgba_full_{}.png".format(str(f).zfill(5))) for f in range(self.num_frames)]
         rgb_img = [np.array(Image.open(frame_path))[...,:3] for frame_path in rgb_img_path]
-        
+
         counts = []
         obj_position = []
 
@@ -183,7 +183,7 @@ class MOViD_A(object):
         fm_no_crop = []
         loss_mask_weight = []
         img_crop = []
-        # for evaluation 
+        # for evaluation
         video_ids = []
         object_ids = []
         frame_ids = []
@@ -204,7 +204,7 @@ class MOViD_A(object):
                 counts.append(1)
             else:
                 bboxs = mask_find_bboxs(full_mask[t_step].astype(np.uint8))
-            
+
                 if bboxs.size==0:
                     vx_min, vy_min, vx_max, vy_max = 0, 0, 256, 256
                 else:
@@ -232,7 +232,7 @@ class MOViD_A(object):
             fm = full_mask[t_step]
             fm_crop.append(fm[vx_min:vx_max+1, vy_min:vy_max+1]==value)
             fm_no_crop.append(fm==value)
-            
+
             # get image
             image = rgb_img[t_step]
             img_crop.append(image[vx_min:vx_max+1, vy_min:vy_max+1])
@@ -250,7 +250,7 @@ class MOViD_A(object):
             frame_ids.append(t_step)
 
         obj_position = torch.from_numpy(np.array(obj_position)).to(self.dtype).to(self.device)
-        
+
         vm_crop, fm_crop, vm_pad, vm_scale, vm_crop_gt, img_crop = self.crop_and_rescale(vm_crop, fm_crop, img_crop)
 
         vm_crop = np.stack(vm_crop, axis=0) # Seq_len * h * w
@@ -274,7 +274,7 @@ class MOViD_A(object):
         object_ids = torch.from_numpy(np.array(object_ids)).to(self.dtype).to(self.device)
         frame_ids = torch.from_numpy(np.array(frame_ids)).to(self.dtype).to(self.device)
         counts = torch.from_numpy(np.array(counts)).to(self.dtype).to(self.device)
-        loss_mask_weight = torch.from_numpy(np.array(loss_mask_weight)).to(self.dtype).to(self.device) 
+        loss_mask_weight = torch.from_numpy(np.array(loss_mask_weight)).to(self.dtype).to(self.device)
         obj_position = torch.from_numpy(np.array(obj_position)).to(self.dtype).to(self.device)
 
         obj_data = {
@@ -284,12 +284,12 @@ class MOViD_A(object):
             "vm_scale": vm_scale,
 
             "img_crop": img_crop,
-            
+
             "fm_crop": fm_crop,
             "fm_no_crop": fm_no_crop,
 
-            "obj_position": obj_position, 
-            "loss_mask": loss_mask_weight, 
+            "obj_position": obj_position,
+            "loss_mask": loss_mask_weight,
             "counts": counts,
             "video_ids": video_ids,
             "object_ids": object_ids,
@@ -333,7 +333,7 @@ class MOViD_A(object):
         vm_pad = np.stack(vm_pad)
         vm_scale = np.stack(vm_scale)
         return vm_crop, fm_crop, vm_pad, vm_scale, vm_crop_gt,img_crop
-    
+
     def read_json(self,dir_):
         with open(dir_) as f:
             data = json.load(f)
@@ -371,9 +371,9 @@ class MOViD_A(object):
             else:
                 res[k] = None
         return res
-    
+
     def data_augmentation(self, mask):
-        mask = mask.astype(np.float)
+        mask = mask.astype(float)
         rdv = random.random()
         n_repeat = random.randint(1, 4)
         if rdv <= 0.1:

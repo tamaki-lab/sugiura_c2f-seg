@@ -39,7 +39,7 @@ def average_gradients(model):
     for param in model.parameters():
         dist.all_reduce(param.grad.data, op=dist.ReduceOp.SUM)
         param.grad.data /= size
-        
+
 # irregular mask generation
 def irregular_mask(H, W, min_width=12, max_width=40, min_brush=2, max_brush=5,
                    min_num_vertex=4, max_num_vertex=12):
@@ -84,7 +84,7 @@ def irregular_mask(H, W, min_width=12, max_width=40, min_brush=2, max_brush=5,
         mask.transpose(Image.FLIP_LEFT_RIGHT)
     if np.random.normal() > 0:
         mask.transpose(Image.FLIP_TOP_BOTTOM)
-    mask = np.asarray(mask, np.float32)
+    mask = np.asarray(mask, float32)
     # mask = np.reshape(mask, (H, W, 1))
     return mask
 
@@ -361,7 +361,7 @@ def show_pose_img(pose):
     for i in range(pose.shape[0]):
         pose_img[pose[i,1]-3:pose[i,1]+3,
                  pose[i, 0]-3:pose[i,0]+3, :] = 0
-    
+
     pose_img = torch.tensor(pose_img)
     return pose_img.int()
 
@@ -483,7 +483,7 @@ def flow_to_image(flow):
         v = v / (maxrad + np.finfo(float).eps)
         img = compute_color(u, v)
         out.append(img)
-    return np.float32(np.uint8(out))
+    return float32(np.uint8(out))
 
 
 def torch_init_model(model, init_checkpoint, key):
@@ -507,7 +507,7 @@ def torch_init_model(model, init_checkpoint, key):
                 load(child, prefix + name + '.')
 
     load(model, prefix='')
-    
+
     print("missing keys:{}".format(missing_keys))
     print('unexpected keys:{}'.format(unexpected_keys))
     print('error msgs:{}'.format(error_msgs))
@@ -529,4 +529,3 @@ def get_combined_mask(mask, min_size=16):
 
     final_mask = F.interpolate(final_mask, (max_size, max_size), mode='bilinear')
     return final_mask
-
